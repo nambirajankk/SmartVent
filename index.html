@@ -275,54 +275,224 @@ function startDemo() {
 }
 
 /* ---------- real Firebase mode ---------- */
+
 async function startFirebase() {
   const cfgBanner = $('bCfg');
-  if (String(firebaseConfig.apiKey).startsWith('PASTE')) { cfgBanner.className = 'banner warn'; render(); return; }
-  const errH = e => { cfgBanner.textContent = 'Firebase error: ' + e.message; cfgBanner.className = 'banner warn'; };
+
+  if (String(firebaseConfig.apiKey).startsWith('PASTE')) {
+    cfgBanner.className = 'banner warn';
+    render();
+    return;
+  }
+
+  const errH = e => {
+    console.error('Firebase error:', e);
+    cfgBanner.textContent = 'Firebase error: ' + e.message;
+    cfgBanner.className = 'banner warn';
+  };
+
   try {
     const base = 'https://www.gstatic.com/firebasejs/10.12.2/';
+
     const [A, D, U] = await Promise.all([
-      import(base + 'firebase-app.js'), import(base + 'firebase-database.js'), import(base + 'firebase-auth.js')]);
-    const app = A.initializeApp(firebaseConfig), db = D.getDatabase(app), auth = U.getAuth(app);
+      import(base + 'firebase-app.js'),
+      import(base + 'firebase-database.js'),
+      import(base + 'firebase-auth.js')
+    ]);
+
+    const app = A.initializeApp(firebaseConfig);
+    const db = D.getDatabase(app);
+    const auth = U.getAuth(app);
+
     const R = p => D.ref(db, 'SmartVent/' + p);
 
-    D.onValue(D.ref(db, '.info/connected'), s => { dbConnected = s.val() === true; });
-    D.onValue(R('sensors'), s => { S.sensors = s.val() || {}; if (s.exists()) lastRx = Date.now(); render(); }, errH);
-    D.onValue(R('fan'), s => { S.fan = s.val() || {}; render(); }, errH);
-    D.onValue(R('diag'), s => { S.diag = s.val() || {}; render(); }, errH);
-    D.onValue(R('cal'), s => { S.cal = s.val() || {}; render(); }, errH);
-    D.onValue(R('control'), s => { S.control = s.val() || {}; render(); }, errH);
-    D.onValue(D.query(R('history'), D.orderByKey(), D.limitToLast(300)), s => {
-      const a = []; s.forEach(c => { a.push(c.val()); }); S.hist = a; render(); }, errH);
-    D.onValue(D.query(R('events'), D.orderByKey(), D.limitToLast(50)), s => {
-      const a = []; s.forEach(c => { a.push(c.val()); }); S.events = a.reverse(); render(); }, errH);
+    const OWNER_EMAIL = 'speaker3391@gmail.com';
 
-    // owner sign-in and control (writes only control/mode and control/targetPwm)
-    U.onAuthStateChanged(auth, u => {
-      $('ctl').style.display = u ? 'block' : 'none';
-      $('signBtn').textContent = u ? 'Sign out' : 'Sign in';
+    let unsubscribers = [];
+    let activeUid = null;
+
+    function stopDataListeners() {
+      unsubscribers.forEach(unsubscribe => unsubscribe());
+      unsubscribers = [];
+      activeUid = null;
+    }
+
+    function clearDashboardData() {
+      S.sensors = {};
+      S.fan = {};
+      S.diag = {};
+      S.cal = {};
+      S.control = {};
+      S.hist = [];
+      S.events = [];
+      lastRx = 0;
+      render();
+    }
+
+    function attachDataListeners(user) {
+      if (activeUid === user.uid) return;
+
+      stopDataListeners();
+      activeUid = user.uid;
+
+      const addListener = (reference, callback) => {
+        const unsubscribe = D.onValue(
+          reference,
+          callback,
+          errH
+        );
+
+        unsubscribers.push(unsubscribe);
+      };
+
+      addListener(R('sensors'), s => {
+        S.sensors = s.val() || {};
+        if (s.exists()) lastRx = Date.now();
+        render();
+      });
+
+      addListener(R('fan'), s => {
+        S.fan = s.val() || {};
+        render();
+      });
+
+      addListener(R('diag'), s => {
+        S.diag = s.val() || {};
+        render();
+      });
+
+      addListener(R('cal'), s => {
+        S.cal = s.val() || {};
+        render();
+      });
+
+      addListener(R('control'), s => {
+        S.control = s.val() || {};
+        render();
+      });
+
+      addListener(
+        D.query(R('history'), D.orderByKey(), D.limitToLast(300)),
+        s => {
+          const a = [];
+          s.forEach(c => a.push(c.val()));
+          S.hist = a;
+          render();
+        }
+      );
+
+      addListener(
+        D.query(R('events'), D.orderByKey(), D.limitToLast(50)),
+        s => {
+          const a = [];
+          s.forEach(c => a.push(c.val()));
+          S.events = a.reverse();
+          render();
+        }
+      );
+
+      cfgBanner.className = 'banner';
+    }
+
+    // Firebase connection status
+    D.onValue(D.ref(db, '.info/connected'), s => {
+      dbConnected = s.val() === true;
     });
-    $('signBtn').onclick = () => { if (auth.currentUser) U.signOut(auth); else $('dlg').showModal(); };
-    $('cancelSign').onclick = () => $('dlg').close();
-    $('goSign').onclick = () => {
-      U.signInWithEmailAndPassword(auth, $('em').value, $('pw').value)
-        .then(() => { $('pw').value = ''; $('authErr').textContent = ''; $('dlg').close(); })
-        .catch(e => { $('authErr').textContent = e.message; });
+
+    // Restore authentication before starting database listeners
+    await U.setPersistence(auth, U.browserLocalPersistence);
+
+    U.onAuthStateChanged(auth, user => {
+      const isOwner = !!user &&
+        user.email?.toLowerCase() === OWNER_EMAIL.toLowerCase();
+
+      $('ctl').style.display = isOwner ? 'block' : 'none';
+      $('signBtn').textContent = user ? 'Sign out' : 'Sign in';
+
+      if (user) {
+        attachDataListeners(user);
+      } else {
+        stopDataListeners();
+        clearDashboardData();
+      }
+    });
+
+    // Sign-in / sign-out
+    $('signBtn').onclick = async () => {
+      if (auth.currentUser) {
+        try {
+          await U.signOut(auth);
+        } catch (e) {
+          errH(e);
+        }
+      } else {
+        $('dlg').showModal();
+      }
     };
-    const setCtl = (k, v) => D.set(R('control/' + k), v).catch(errH);
+
+    $('cancelSign').onclick = () => $('dlg').close();
+
+    $('goSign').onclick = async () => {
+      const email = $('em').value.trim();
+      const password = $('pw').value;
+
+      if (!email || !password) {
+        $('authErr').textContent = 'Enter your email and password.';
+        return;
+      }
+
+      $('goSign').disabled = true;
+      $('authErr').textContent = 'Signing in...';
+
+      try {
+        await U.signInWithEmailAndPassword(auth, email, password);
+        $('pw').value = '';
+        $('authErr').textContent = '';
+        $('dlg').close();
+      } catch (e) {
+        $('authErr').textContent = e.message;
+      } finally {
+        $('goSign').disabled = false;
+      }
+    };
+
+    // Firebase control writes
+    const setCtl = (k, v) => {
+      if (auth.currentUser?.email?.toLowerCase() !== OWNER_EMAIL.toLowerCase()) {
+        return;
+      }
+
+      D.set(R('control/' + k), v).catch(errH);
+    };
+
     $('mAuto').onclick = () => setCtl('mode', 'AUTO');
     $('mMan').onclick = () => setCtl('mode', 'MANUAL');
+
     let tmr;
+
     $('slider').oninput = e => {
       $('sv').textContent = e.target.value + ' %';
-      clearTimeout(tmr); tmr = setTimeout(() => setCtl('targetPwm', +e.target.value), 300);
-    };
-    document.querySelectorAll('[data-p]').forEach(b => b.onclick = () => {
-      $('slider').value = b.dataset.p; $('sv').textContent = b.dataset.p + ' %'; setCtl('targetPwm', +b.dataset.p);
-    });
-  } catch (e) { errH(e); }
-}
 
+      clearTimeout(tmr);
+
+      tmr = setTimeout(() => {
+        setCtl('targetPwm', +e.target.value);
+      }, 300);
+    };
+
+    document.querySelectorAll('[data-p]').forEach(b => {
+      b.onclick = () => {
+        $('slider').value = b.dataset.p;
+        $('sv').textContent = b.dataset.p + ' %';
+        setCtl('targetPwm', +b.dataset.p);
+      };
+    });
+
+  } catch (e) {
+    console.error(e);
+    errH(e);
+  }
+}
 render();
 if (DEMO) startDemo(); else startFirebase();
 </script>
