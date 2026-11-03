@@ -558,7 +558,7 @@ function render() {
     SEVERE:['Severe current deviation','bad']
   };
 
-  const [txt,cls] = map[lvl] || ['Unknown',''];
+  const [txt,cls] = map[lvl] || ['Calibrating',''];
 
   chip.textContent = txt;
   chip.className = cls;
