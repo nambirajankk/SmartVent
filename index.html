@@ -1,23 +1,27 @@
 <!DOCTYPE html>
-<html lang="en"><head>
+<html lang="en">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SmartVent</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
 <style>
 :root{--ink:#1c1c1c;--mute:#8a8f98;--c1:#e3f5ff;--c2:#e5ecf6;--line:#eceef2}
 *{box-sizing:border-box}
 body{margin:0;font:14px system-ui,sans-serif;color:var(--ink);background:#f7f8fa}
 .app{display:grid;grid-template-columns:180px 1fr 270px;min-height:100vh}
 aside,.right{background:#fff;padding:18px}
-aside{border-right:1px solid var(--line)}.right{border-left:1px solid var(--line)}
+aside{border-right:1px solid var(--line)}
+.right{border-left:1px solid var(--line)}
 .logo{font-weight:700;margin-bottom:20px}
 nav a{display:block;padding:8px 10px;border-radius:8px;color:var(--mute);text-decoration:none}
 nav a:first-child{background:#f1f3f6;color:var(--ink)}
 main{padding:18px;min-width:0}
 h2{font-size:14px;margin:0 0 12px}
 .top{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
-.top h2{margin:0}.sp{flex:1}
+.top h2{margin:0}
+.sp{flex:1}
 .row{display:grid;gap:14px;margin-bottom:14px}
 .stats{grid-template-columns:repeat(4,1fr)}
 .two{grid-template-columns:2fr 1fr}
@@ -28,7 +32,9 @@ h2{font-size:14px;margin:0 0 12px}
 .stat span{color:var(--mute);font-size:12px}
 .chartbox{position:relative;height:220px}
 .pill{padding:3px 10px;border-radius:20px;font-size:12px;background:#eceef2}
-.pill.ok{background:#d9f5e8}.pill.warn{background:#fff1d0}.pill.bad{background:#ffd9d9}
+.pill.ok{background:#d9f5e8}
+.pill.warn{background:#fff1d0}
+.pill.bad{background:#ffd9d9}
 .lg{font-size:12px;color:var(--mute);margin-top:6px}
 .banner{display:none;padding:12px 16px;border-radius:12px;margin-bottom:14px;font-weight:600}
 .banner.bad{display:block;background:#dc2626;color:#fff}
@@ -43,477 +49,1215 @@ button:disabled{opacity:.4;cursor:not-allowed}
 #ev li.sev-critical{border-left-color:#dc2626}
 #ev small{display:block;color:var(--mute)}
 #diagChip{display:inline-block;font-size:18px;font-weight:600;padding:6px 14px;border-radius:20px;background:#eceef2}
-#diagChip.ok{background:#d9f5e8}#diagChip.warn{background:#fff1d0}#diagChip.bad{background:#ffd9d9}
+#diagChip.ok{background:#d9f5e8}
+#diagChip.warn{background:#fff1d0}
+#diagChip.bad{background:#ffd9d9}
 #ctl{display:none}
 input[type=range]{width:100%}
 dialog{border:0;border-radius:14px;padding:18px;min-width:260px}
 dialog input{display:block;width:100%;margin:8px 0;padding:8px;border:1px solid var(--line);border-radius:8px}
-@media(max-width:900px){.app{grid-template-columns:1fr}aside{display:none}
-.right{border:0}.stats{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr}}
-</style></head>
+@media(max-width:900px){
+.app{grid-template-columns:1fr}
+aside{display:none}
+.right{border:0}
+.stats{grid-template-columns:1fr 1fr}
+.two{grid-template-columns:1fr}
+}
+</style>
+</head>
+
 <body>
+
 <div class="app">
-<aside><div class="logo">SmartVent</div>
-<nav><a href="#top">Overview</a><a href="#analytics">Analytics</a><a href="#diag">Diagnostics</a><a href="#ctl">Control</a></nav></aside>
+
+<aside>
+<div class="logo">SmartVent</div>
+<nav>
+<a href="#top">Overview</a>
+<a href="#analytics">Analytics</a>
+<a href="#diag">Diagnostics</a>
+<a href="#ctl">Control</a>
+</nav>
+</aside>
 
 <main id="top">
+
 <div class="top">
-  <h2>Overview</h2><span id="conn" class="pill">Starting...</span>
-  <span class="sp"></span><button id="signBtn">Sign in</button>
+<h2>Overview</h2>
+<span id="conn" class="pill">Starting...</span>
+<span class="sp"></span>
+<button id="signBtn">Sign in</button>
 </div>
 
-<div id="bCfg" class="banner">Firebase config missing: paste your firebaseConfig at the top of the script.</div>
-<div id="bSevere" class="banner">Severe airflow blockage: check the grille and duct.</div>
-<div id="bFault" class="banner">Sensor fault: SmartVent is in timed-ventilation fallback.</div>
+<div id="bCfg" class="banner">
+Firebase config missing: paste your firebaseConfig at the top of the script.
+</div>
+
+<div id="bSevere" class="banner">
+Severe fan-current deviation detected. Inspect the fan and grille.
+</div>
+
+<div id="bFault" class="banner">
+Sensor fault: SmartVent is in timed-ventilation fallback.
+</div>
 
 <div class="row stats">
-  <div class="stat" style="background:var(--c1)"><small>Humidity</small><b id="rh">--</b><span id="t"></span></div>
-  <div class="stat" style="background:var(--c2)"><small>Fan speed</small><b id="spd">--</b><span id="st"></span></div>
-  <div class="stat" style="background:var(--c1)"><small>Current</small><b id="i">--</b><span>relative to zero-current calibration</span></div>
-  <div class="stat" style="background:var(--c2)"><small>Energy</small><b id="wh">--</b><span>since start</span></div>
+
+<div class="stat" style="background:var(--c1)">
+<small>Humidity</small>
+<b id="rh">--</b>
+<span id="t"></span>
+</div>
+
+<div class="stat" style="background:var(--c2)">
+<small>Fan speed</small>
+<b id="spd">--</b>
+<span id="st"></span>
+</div>
+
+<div class="stat" style="background:var(--c1)">
+<small>Current</small>
+<b id="i">--</b>
+<span>Relative to zero-current calibration</span>
+</div>
+
+<div class="stat" style="background:var(--c2)">
+<small>Energy</small>
+<b id="wh">--</b>
+<span>Since start</span>
+</div>
+
 </div>
 
 <div class="row two">
-  <div class="card" id="analytics">
-    <h2>Analytics</h2>
-    <div class="tabs">
-      <button data-m="humidity" class="on">Humidity</button>
-      <button data-m="temperature">Temperature</button>
-      <button data-m="current_mA">Current</button>
-      <button data-m="rpm">RPM</button>
-    </div>
-    <div class="tabs">
-      <button data-r="3600000">1 h</button><button data-r="21600000">6 h</button>
-      <button data-r="86400000">24 h</button><button data-r="0" class="on">All</button>
-    </div>
-    <div class="chartbox"><canvas id="lineC"></canvas></div>
-    <div class="lg" id="histNote"></div>
-  </div>
 
-  <div class="card" id="diag">
-    <h2>Diagnostics</h2>
-    <span id="diagChip">Unknown</span>
-    <div class="lg" id="dev"></div>
-    <div class="chartbox" style="height:170px;margin-top:10px"><canvas id="sigC"></canvas></div>
-    <div class="lg">Blockage signature: clean-fan current vs latest live current at each speed.</div>
-    <div class="lg" id="calNote"></div>
-  </div>
+<div class="card" id="analytics">
+
+<h2>Analytics</h2>
+
+<div class="tabs">
+<button data-m="humidity" class="on">Humidity</button>
+<button data-m="temperature">Temperature</button>
+<button data-m="current_mA">Current</button>
+<button data-m="rpm">RPM</button>
+</div>
+
+<div class="tabs">
+<button data-r="3600000">1 h</button>
+<button data-r="21600000">6 h</button>
+<button data-r="86400000">24 h</button>
+<button data-r="0" class="on">All</button>
+</div>
+
+<div class="chartbox">
+<canvas id="lineC"></canvas>
+</div>
+
+<div class="lg" id="histNote">Waiting for history data...</div>
+
+</div>
+
+<div class="card" id="diag">
+
+<h2>Diagnostics</h2>
+
+<span id="diagChip">Unknown</span>
+
+<div class="lg" id="dev"></div>
+
+<div class="lg" id="blockageNote">
+Fan condition: Waiting for data
+</div>
+
+<div class="chartbox" style="height:170px;margin-top:10px">
+<canvas id="sigC"></canvas>
+</div>
+
+<div class="lg">
+Clean-fan current vs latest live current at each speed.
+</div>
+
+<div class="lg" id="calNote"></div>
+
+</div>
+
 </div>
 
 <div class="card" id="ctl">
-  <h2>Fan control (owner only)</h2>
-  <div class="tabs"><button id="mAuto">AUTO</button><button id="mMan">MANUAL</button></div>
-  <input id="slider" type="range" min="0" max="100" step="5" value="0">
-  <div class="lg">Target speed: <b id="sv">0 %</b> (applies in MANUAL)</div>
-  <div class="tabs" style="margin-top:8px">
-    <button data-p="0">OFF</button><button data-p="25">25 %</button><button data-p="50">50 %</button>
-    <button data-p="75">75 %</button><button data-p="100">100 %</button>
-  </div>
-  <div class="lg" id="cmd"></div>
-  <div class="lg">The ESP8266 enforces safety limits and may ignore or limit commands.</div>
+
+<h2>Fan control (owner only)</h2>
+
+<div class="tabs">
+<button id="mAuto">AUTO</button>
+<button id="mMan">MANUAL</button>
 </div>
+
+<input id="slider" type="range" min="0" max="100" step="5" value="0">
+
+<div class="lg">
+Target speed: <b id="sv">0 %</b> (applies in MANUAL)
+</div>
+
+<div class="tabs" style="margin-top:8px">
+<button data-p="0">OFF</button>
+<button data-p="25">25 %</button>
+<button data-p="50">50 %</button>
+<button data-p="75">75 %</button>
+<button data-p="100">100 %</button>
+</div>
+
+<div class="lg" id="cmd"></div>
+
+<div class="lg">
+The ESP8266 enforces safety limits and may ignore or limit commands.
+</div>
+
+</div>
+
 </main>
 
-<div class="right"><h2>Events</h2><ul id="ev"></ul></div>
+<div class="right">
+<h2>Events</h2>
+<ul id="ev"></ul>
 </div>
 
-<dialog id="dlg"><b>Owner sign-in</b>
-  <input id="em" type="email" placeholder="Email">
-  <input id="pw" type="password" placeholder="Password">
-  <div id="authErr" class="lg"></div>
-  <div><button id="goSign">Sign in</button> <button id="cancelSign">Cancel</button></div>
+</div>
+
+<dialog id="dlg">
+
+<b>Owner sign-in</b>
+
+<input id="em" type="email" placeholder="Email">
+<input id="pw" type="password" placeholder="Password">
+
+<div id="authErr" class="lg"></div>
+
+<div>
+<button id="goSign">Sign in</button>
+<button id="cancelSign">Cancel</button>
+</div>
+
 </dialog>
 
 <script>
-/* ========= 1. PASTE YOUR FIREBASE WEB CONFIG HERE ========= */
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+
+// ==================================================
+// FIREBASE CONFIGURATION
+// ==================================================
+
 const firebaseConfig = {
   apiKey: "AIzaSyCAps4vp5mm65Jm4jeWus2DX7ptoYRYCtI",
   authDomain: "smartvent-2afe0.firebaseapp.com",
   databaseURL: "https://smartvent-2afe0-default-rtdb.firebaseio.com",
   projectId: "smartvent-2afe0",
-  appId: "1:775238163331:web:1934c5b43f1895142334b6",
+  appId: "1:775238163331:web:1934c5b43f1895142334b6"
 };
-/* =========================================================== */
 
 const DEMO = new URLSearchParams(location.search).get('demo') === '1';
+
 const $ = id => document.getElementById(id);
-const num = v => (typeof v === 'number' && isFinite(v)) ? v : null;
-const fmt = (v, d = 0, u = '') => { v = num(v); return v === null ? '--' : v.toFixed(d) + u; };
 
-const S = { sensors: {}, fan: {}, diag: {}, cal: {}, control: {}, hist: [], events: [] };
-const liveBy = { 40: null, 70: null, 100: null };
-let lastRx = 0, dbConnected = true, metric = 'humidity', range = 0;
-const LABELS = { humidity: 'Humidity (%)', temperature: 'Temperature (°C)', current_mA: 'Current (mA, relative)', rpm: 'RPM' };
+const num = v =>
+  (typeof v === 'number' && isFinite(v)) ? v : null;
 
-/* ---------- charts ---------- */
-const lineChart = new Chart($('lineC'), {
-  type: 'line',
-  data: { labels: [], datasets: [{ label: '', data: [], borderColor: '#4f8cff',
-    backgroundColor: 'rgba(79,140,255,.12)', fill: true, tension: .3, pointRadius: 0, borderWidth: 2 }] },
-  options: { responsive: true, maintainAspectRatio: false, animation: false,
-    plugins: { legend: { display: false } }, scales: { x: { ticks: { maxTicksLimit: 6 } } } }
-});
-const sigChart = new Chart($('sigC'), {
-  type: 'bar',
-  data: { labels: ['40 %', '70 %', '100 %'], datasets: [
-    { label: 'Clean (mA)', data: [], backgroundColor: '#a1e3cb' },
-    { label: 'Live (mA)', data: [], backgroundColor: '#1c1c1c' }] },
-  options: { responsive: true, maintainAspectRatio: false, animation: false,
-    plugins: { legend: { position: 'bottom' } } }
-});
+const fmt = (v,d=0,u='') => {
+  v = num(v);
+  return v === null ? '--' : v.toFixed(d) + u;
+};
 
-/* ---------- rendering ---------- */
-function renderChart() {
-  let rows = S.hist;
-  const epoch = rows.length > 0 && rows.every(r => num(r.ts) > 1e12);
-  if (epoch && range) rows = rows.filter(r => r.ts >= Date.now() - range);
-  lineChart.data.labels = rows.map((r, i) => epoch
-    ? new Date(r.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '#' + (i + 1));
-  lineChart.data.datasets[0].data = rows.map(r => num(r[metric]));
-  lineChart.data.datasets[0].label = LABELS[metric];
-  lineChart.update('none');
-  $('histNote').textContent = rows.length ? (epoch || !S.hist.length ? '' :
-    'Timestamps are not real clock time, so the time filters are disabled.') : 'No data yet';
+const S = {
+  sensors:{},
+  fan:{},
+  diag:{},
+  blockage:{},
+  cal:{},
+  control:{},
+  hist:[],
+  events:[]
+};
+
+const liveBy = {
+  40:null,
+  70:null,
+  100:null
+};
+
+let lastRx = 0;
+let dbConnected = false;
+let metric = 'humidity';
+let range = 0;
+
+const LABELS = {
+  humidity:'Humidity (%)',
+  temperature:'Temperature (°C)',
+  current_mA:'Current (mA)',
+  rpm:'RPM'
+};
+
+// ==================================================
+// TIMESTAMP HANDLING
+// ==================================================
+
+function timestampMs(value) {
+
+  const n = num(value);
+
+  if(n === null || n <= 0) return null;
+
+  return n < 1e12 ? n * 1000 : n;
 }
+
+// ==================================================
+// CHARTS
+// ==================================================
+
+if(typeof Chart === 'undefined') {
+  $('histNote').textContent = 'Chart.js failed to load. Check internet connection.';
+  throw new Error('Chart.js library unavailable');
+}
+
+const lineChart = new Chart($('lineC'), {
+
+  type:'line',
+
+  data:{
+    labels:[],
+    datasets:[{
+      label:'',
+      data:[],
+      borderColor:'#4f8cff',
+      backgroundColor:'rgba(79,140,255,.12)',
+      fill:true,
+      tension:.3,
+      pointRadius:2,
+      borderWidth:2,
+      spanGaps:false
+    }]
+  },
+
+  options:{
+    responsive:true,
+    maintainAspectRatio:false,
+    animation:false,
+
+    plugins:{
+      legend:{display:false}
+    },
+
+    scales:{
+      x:{
+        ticks:{maxTicksLimit:6}
+      }
+    }
+  }
+
+});
+
+const sigChart = new Chart($('sigC'), {
+
+  type:'bar',
+
+  data:{
+    labels:['40 %','70 %','100 %'],
+
+    datasets:[
+      {
+        label:'Clean (mA)',
+        data:[],
+        backgroundColor:'#a1e3cb'
+      },
+      {
+        label:'Live (mA)',
+        data:[],
+        backgroundColor:'#1c1c1c'
+      }
+    ]
+  },
+
+  options:{
+    responsive:true,
+    maintainAspectRatio:false,
+    animation:false,
+
+    plugins:{
+      legend:{position:'bottom'}
+    }
+  }
+
+});
+
+// ==================================================
+// HISTORY GRAPH
+// ==================================================
+
+function renderChart() {
+
+  let rows = [...S.hist];
+
+  rows.sort((a,b) => {
+
+    const ta = timestampMs(a.ts);
+    const tb = timestampMs(b.ts);
+
+    if(ta !== null && tb !== null) {
+      return ta - tb;
+    }
+
+    return 0;
+  });
+
+  const now = Date.now();
+
+  if(range) {
+
+    rows = rows.filter(r => {
+
+      const ts = timestampMs(r.ts);
+
+      return ts !== null && ts >= now - range;
+
+    });
+
+  }
+
+  const validRows = rows.filter(r => num(r[metric]) !== null);
+
+  lineChart.data.labels = validRows.map((r,i) => {
+
+    const ts = timestampMs(r.ts);
+
+    return ts !== null
+      ? new Date(ts).toLocaleTimeString([],{
+          hour:'2-digit',
+          minute:'2-digit'
+        })
+      : '#' + (i+1);
+
+  });
+
+  lineChart.data.datasets[0].data =
+    validRows.map(r => num(r[metric]));
+
+  lineChart.data.datasets[0].label = LABELS[metric];
+
+  lineChart.update('none');
+
+  $('histNote').textContent = validRows.length
+    ? validRows.length + ' readings displayed'
+    : 'Waiting for history data. New readings are uploaded every 30 seconds.';
+
+}
+
+// ==================================================
+// EVENTS
+// ==================================================
 
 function renderEvents() {
-  const ul = $('ev'); ul.textContent = '';
-  if (!S.events.length) { const li = document.createElement('li'); li.textContent = 'No events yet'; ul.append(li); return; }
-  S.events.forEach(e => {
-    const li = document.createElement('li'); li.className = 'sev-' + (e.severity || 'info');
-    const b = document.createElement('b'); b.textContent = (e.category || 'event') + ': ' + (e.text || '');
-    const sm = document.createElement('small');
-    sm.textContent = (num(e.ts) > 1e12 ? new Date(e.ts).toLocaleString() + ' · ' : '') + (e.severity || 'info');
-    li.append(b, sm); ul.append(li);
+
+  const ul = $('ev');
+
+  ul.textContent = '';
+
+  const events = [...S.events];
+
+  events.sort((a,b) => {
+
+    const ta = timestampMs(a.ts) || 0;
+    const tb = timestampMs(b.ts) || 0;
+
+    return tb - ta;
+
   });
-}
 
-function render() {
-  const s = S.sensors, f = S.fan, d = S.diag, c = S.control;
-  const rh = num(s.humidity), rhOk = rh !== null && rh >= 0 && rh <= 100;
-  $('rh').textContent = rhOk ? rh.toFixed(1) + ' %' : '--';
-  $('t').textContent = 'Temp ' + fmt(s.temperature, 1, ' °C') + (rh !== null && !rhOk ? ' · invalid RH' : '');
-  $('spd').textContent = fmt(f.pwm, 0, ' %');
-  $('st').textContent = (f.state || '--') + ' · ' + (num(s.rpm) !== null ? Math.round(s.rpm) + ' RPM' : 'RPM n/a');
-  $('i').textContent = fmt(s.current_mA, 0, ' mA');
-  $('wh').textContent = fmt(s.energy_Wh, 3, ' Wh');
+  if(!events.length) {
 
-  // Diagnostics
-  const lvl = d.level, chip = $('diagChip');
-  
-  const map = {
-    OK: ['Airflow OK', 'ok'],
-    MILD: ['Slightly restricted', 'warn'],
-    SEVERE: ['Severe blockage', 'bad']
-  };
-  
-  let txt, cls;
-  
-  if (d.fault === true) {
-    txt = 'Sensor Fault';
-    cls = 'bad';
-  } else if (lvl === 'OK' || lvl === 'MILD' || lvl === 'SEVERE') {
-    [txt, cls] = map[lvl];
-  } else {
-    txt = 'Awaiting Calibration';
-    cls = '';
-  }
+    const li = document.createElement('li');
 
-chip.textContent = txt;
-chip.className = cls;
+    li.textContent = 'No events recorded yet.';
 
-$('bSevere').className = 'banner' + (lvl === 'SEVERE' ? ' bad' : '');
-$('bFault').className = 'banner' + (d.fault === true ? ' warn' : '');
+    ul.append(li);
 
-$('dev').textContent = 'Current deviation: ' + fmt(d.devPct, 1, ' %');
-
-  // signature chart
-  const p = num(f.pwm), cur = num(s.current_mA);
-  if (p > 0 && cur !== null) {
-    const b = [40, 70, 100].reduce((a, x) => Math.abs(x - p) < Math.abs(a - p) ? x : a);
-    liveBy[b] = cur;
-  }
-  const clean = (S.cal && S.cal.clean_mA) || {};
-  sigChart.data.datasets[0].data = [40, 70, 100].map(k => num(clean[k]));
-  sigChart.data.datasets[1].data = [40, 70, 100].map(k => liveBy[k]);
-  sigChart.update('none');
-  $('calNote').textContent = Object.keys(clean).length ? '' : 'No calibration data yet (SmartVent/cal/clean_mA).';
-
-  // control panel state
-  const m = c.mode, manual = m === 'MANUAL';
-  $('mAuto').classList.toggle('on', m === 'AUTO'); $('mMan').classList.toggle('on', manual);
-  $('slider').disabled = !manual;
-  document.querySelectorAll('[data-p]').forEach(b => b.disabled = !manual);
-  if (document.activeElement !== $('slider') && num(c.targetPwm) !== null) {
-    $('slider').value = c.targetPwm; $('sv').textContent = c.targetPwm + ' %';
-  }
-  $('cmd').textContent = 'Commanded: ' + (m || '--') + ' · ' + fmt(c.targetPwm, 0, ' %') +
-    '  |  Measured: ' + fmt(f.pwm, 0, ' %') + ' · ' + (num(s.rpm) !== null ? Math.round(s.rpm) + ' RPM' : 'RPM n/a');
-
-  renderChart(); renderEvents();
-}
-
-/* ---------- connection badge (no lastSeen needed) ---------- */
-setInterval(() => {
-  const p = $('conn');
-  if (DEMO) { p.textContent = 'DEMO DATA'; p.className = 'pill warn'; return; }
-  if (!dbConnected) { p.textContent = 'Disconnected from Firebase'; p.className = 'pill bad'; return; }
-  if (!lastRx) { p.textContent = 'Waiting for data...'; p.className = 'pill'; return; }
-  const age = (Date.now() - lastRx) / 1000;
-  if (age > 60) { p.textContent = 'No new data for ' + Math.round(age) + ' s'; p.className = 'pill'; }
-  else { p.textContent = 'Live · updated ' + new Date(lastRx).toLocaleTimeString(); p.className = 'pill ok'; }
-}, 1000);
-
-/* ---------- UI wiring ---------- */
-const setOn = (sel, el) => document.querySelectorAll(sel).forEach(b => b.classList.toggle('on', b === el));
-document.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { metric = b.dataset.m; setOn('[data-m]', b); renderChart(); });
-document.querySelectorAll('[data-r]').forEach(b => b.onclick = () => { range = +b.dataset.r; setOn('[data-r]', b); renderChart(); });
-
-/* ---------- demo mode (only with ?demo=1) ---------- */
-function startDemo() {
-  $('signBtn').style.display = 'none';
-  const now = Date.now();
-  S.hist = Array.from({ length: 60 }, (_, i) => ({
-    ts: now - (60 - i) * 30000, humidity: 62 + 16 * Math.sin(i / 6), temperature: 31 + Math.sin(i / 9),
-    current_mA: 60 + 30 * Math.sin(i / 6), rpm: 800 + 300 * Math.sin(i / 6) }));
-  S.events = [
-    { ts: now - 120000, category: 'fan', severity: 'info', text: 'Fan started (humidity above 60 %)' },
-    { ts: now - 600000, category: 'system', severity: 'info', text: 'Demo event' }];
-  const tick = () => {
-    const t = Date.now() / 1000, rh = 62 + 16 * Math.sin(t / 40);
-    const pwm = rh >= 76 ? 100 : rh >= 66 ? 70 : rh >= 60 ? 40 : 0;
-    S.sensors = { temperature: 31.5 + Math.sin(t / 90), humidity: rh, current_mA: pwm * 1.6 + 20 + Math.random() * 4,
-      rpm: pwm * 20, energy_Wh: (t % 1000) / 1000 };
-    S.fan = { state: pwm ? 'RUN' : 'IDLE', pwm, running: pwm > 0 };
-    S.diag = { level: 'OK', devPct: 2.1, fault: false };
-    S.cal = { clean_mA: { 40: 84, 70: 132, 100: 180 } };
-    S.control = { mode: 'AUTO', targetPwm: pwm };
-    lastRx = Date.now(); render();
-  };
-  tick(); setInterval(tick, 2000);
-}
-
-/* ---------- real Firebase mode ---------- */
-
-async function startFirebase() {
-  const cfgBanner = $('bCfg');
-
-  if (String(firebaseConfig.apiKey).startsWith('PASTE')) {
-    cfgBanner.className = 'banner warn';
-    render();
     return;
   }
 
-  const errH = e => {
-    console.error('Firebase error:', e);
-    cfgBanner.textContent = 'Firebase error: ' + e.message;
+  events.forEach(e => {
+
+    const li = document.createElement('li');
+
+    const severity = String(e.severity || 'info').toLowerCase();
+
+    li.className = 'sev-' + severity;
+
+    const b = document.createElement('b');
+
+    b.textContent =
+      (e.category || 'event') + ': ' +
+      (e.text || 'No description');
+
+    const sm = document.createElement('small');
+
+    const ts = timestampMs(e.ts);
+
+    sm.textContent =
+      (ts !== null ? new Date(ts).toLocaleString() + ' · ' : '') +
+      severity.toUpperCase();
+
+    li.append(b,sm);
+
+    ul.append(li);
+
+  });
+
+}
+
+// ==================================================
+// DASHBOARD RENDER
+// ==================================================
+
+function render() {
+
+  const s = S.sensors;
+  const f = S.fan;
+  const d = S.diag;
+  const c = S.control;
+  const blockage = S.blockage;
+
+  const rh = num(s.humidity);
+
+  const rhOk = rh !== null && rh >= 0 && rh <= 100;
+
+  $('rh').textContent =
+    rhOk ? rh.toFixed(1) + ' %' : '--';
+
+  $('t').textContent =
+    'Temp ' + fmt(s.temperature,1,' °C');
+
+  $('spd').textContent =
+    fmt(f.pwm,0,' %');
+
+  $('st').textContent =
+    (f.state || '--') + ' · ' +
+    (num(s.rpm) !== null
+      ? Math.round(s.rpm) + ' RPM'
+      : 'RPM n/a');
+
+  $('i').textContent =
+    fmt(s.current_mA,0,' mA');
+
+  $('wh').textContent =
+    fmt(s.energy_Wh,3,' Wh');
+
+  // Diagnostics
+
+  const lvl = d.level;
+  const chip = $('diagChip');
+
+  const map = {
+    OK:['Airflow OK','ok'],
+    MILD:['Current deviation detected','warn'],
+    SEVERE:['Severe current deviation','bad']
+  };
+
+  const [txt,cls] = map[lvl] || ['Unknown',''];
+
+  chip.textContent = txt;
+  chip.className = cls;
+
+  $('bSevere').className =
+    'banner' + (lvl === 'SEVERE' ? ' bad' : '');
+
+  $('bFault').className =
+    'banner' + (d.fault === true ? ' warn' : '');
+
+  $('dev').textContent =
+    'Current deviation: ' + fmt(d.devPct,1,' %');
+
+  // Blockage status
+
+  const blockageType = blockage.type || 'NORMAL';
+
+  const blockageDeviation = num(blockage.currentDevPct);
+
+  $('blockageNote').textContent =
+    'Fan condition: ' +
+    (blockageType === 'POSSIBLE_OBSTRUCTION'
+      ? 'Possible obstruction'
+      : blockageType) +
+    ' · Current deviation: ' +
+    fmt(blockageDeviation,1,' %');
+
+  // Signature chart
+
+  const p = num(f.pwm);
+  const cur = num(s.current_mA);
+
+  if(p !== null && p > 0 && cur !== null) {
+
+    const b = [40,70,100].reduce((a,x) =>
+      Math.abs(x-p) < Math.abs(a-p) ? x : a
+    );
+
+    liveBy[b] = cur;
+
+  }
+
+  const clean = (S.cal && S.cal.clean_mA) || {};
+
+  sigChart.data.datasets[0].data =
+    [40,70,100].map(k => num(clean[k]));
+
+  sigChart.data.datasets[1].data =
+    [40,70,100].map(k => liveBy[k]);
+
+  sigChart.update('none');
+
+  $('calNote').textContent =
+    Object.keys(clean).length
+      ? ''
+      : 'No calibration data yet (SmartVent/cal/clean_mA).';
+
+  // Control panel
+
+  const m = c.mode;
+  const manual = m === 'MANUAL';
+
+  $('mAuto').classList.toggle('on',m === 'AUTO');
+  $('mMan').classList.toggle('on',manual);
+
+  $('slider').disabled = !manual;
+
+  document.querySelectorAll('[data-p]').forEach(b => {
+    b.disabled = !manual;
+  });
+
+  if(
+    document.activeElement !== $('slider') &&
+    num(c.targetPwm) !== null
+  ) {
+
+    $('slider').value = c.targetPwm;
+
+    $('sv').textContent = c.targetPwm + ' %';
+
+  }
+
+  $('cmd').textContent =
+    'Commanded: ' + (m || '--') +
+    ' · ' + fmt(c.targetPwm,0,' %') +
+    ' | Measured: ' + fmt(f.pwm,0,' %') +
+    ' · ' +
+    (num(s.rpm) !== null
+      ? Math.round(s.rpm) + ' RPM'
+      : 'RPM n/a');
+
+  renderChart();
+
+  renderEvents();
+
+}
+
+// ==================================================
+// CONNECTION STATUS
+// ==================================================
+
+setInterval(() => {
+
+  const p = $('conn');
+
+  if(DEMO) {
+
+    p.textContent = 'DEMO DATA';
+    p.className = 'pill warn';
+
+    return;
+  }
+
+  if(!dbConnected) {
+
+    p.textContent = 'Disconnected from Firebase';
+    p.className = 'pill bad';
+
+    return;
+  }
+
+  if(!lastRx) {
+
+    p.textContent = 'Waiting for data...';
+    p.className = 'pill';
+
+    return;
+  }
+
+  const age = (Date.now()-lastRx)/1000;
+
+  if(age > 60) {
+
+    p.textContent =
+      'No new data for ' + Math.round(age) + ' s';
+
+    p.className = 'pill';
+
+  } else {
+
+    p.textContent =
+      'Live · updated ' + new Date(lastRx).toLocaleTimeString();
+
+    p.className = 'pill ok';
+
+  }
+
+},1000);
+
+// ==================================================
+// UI BUTTONS
+// ==================================================
+
+const setOn = (sel,el) => {
+
+  document.querySelectorAll(sel).forEach(b => {
+    b.classList.toggle('on',b === el);
+  });
+
+};
+
+document.querySelectorAll('[data-m]').forEach(b => {
+
+  b.onclick = () => {
+
+    metric = b.dataset.m;
+
+    setOn('[data-m]',b);
+
+    renderChart();
+
+  };
+
+});
+
+document.querySelectorAll('[data-r]').forEach(b => {
+
+  b.onclick = () => {
+
+    range = +b.dataset.r;
+
+    setOn('[data-r]',b);
+
+    renderChart();
+
+  };
+
+});
+
+// ==================================================
+// DEMO MODE
+// ==================================================
+
+function startDemo() {
+
+  $('signBtn').style.display = 'none';
+
+  const now = Date.now();
+
+  S.hist = Array.from({length:60},(_,i) => ({
+
+    ts:now-(60-i)*30000,
+
+    humidity:62+16*Math.sin(i/6),
+
+    temperature:31+Math.sin(i/9),
+
+    current_mA:60+30*Math.sin(i/6),
+
+    rpm:800+300*Math.sin(i/6)
+
+  }));
+
+  S.events = [
+
+    {
+      ts:now-120000,
+      category:'fan',
+      severity:'info',
+      text:'Fan started'
+    },
+
+    {
+      ts:now-600000,
+      category:'system',
+      severity:'info',
+      text:'Demo event'
+    }
+
+  ];
+
+  const tick = () => {
+
+    const t = Date.now()/1000;
+
+    const rh = 62+16*Math.sin(t/40);
+
+    const pwm =
+      rh >= 76 ? 100 :
+      rh >= 66 ? 70 :
+      rh >= 60 ? 40 : 0;
+
+    S.sensors = {
+
+      temperature:31.5+Math.sin(t/90),
+
+      humidity:rh,
+
+      current_mA:pwm*1.6+20+Math.random()*4,
+
+      rpm:pwm*20,
+
+      energy_Wh:(t%1000)/1000
+
+    };
+
+    S.fan = {
+
+      state:pwm ? 'RUN':'IDLE',
+
+      pwm,
+
+      running:pwm>0
+
+    };
+
+    S.diag = {
+
+      level:'OK',
+
+      devPct:2.1,
+
+      fault:false
+
+    };
+
+    S.blockage = {
+
+      detected:false,
+
+      status:'NORMAL',
+
+      type:'NORMAL',
+
+      currentDevPct:2.1
+
+    };
+
+    S.cal = {
+
+      clean_mA:{
+
+        40:84,
+
+        70:132,
+
+        100:180
+
+      }
+
+    };
+
+    S.control = {
+
+      mode:'AUTO',
+
+      targetPwm:pwm
+
+    };
+
+    lastRx = Date.now();
+
+    render();
+
+  };
+
+  tick();
+
+  setInterval(tick,2000);
+
+}
+
+// ==================================================
+// FIREBASE
+// ==================================================
+
+async function startFirebase() {
+
+  const cfgBanner = $('bCfg');
+
+  if(String(firebaseConfig.apiKey).startsWith('PASTE')) {
+
     cfgBanner.className = 'banner warn';
+
+    render();
+
+    return;
+
+  }
+
+  const errH = e => {
+
+    console.error('[Firebase error]',e);
+
+    cfgBanner.textContent =
+      'Firebase error: ' + (e.message || e);
+
+    cfgBanner.className = 'banner warn';
+
   };
 
   try {
-    const base = 'https://www.gstatic.com/firebasejs/10.12.2/';
 
-    const [A, D, U] = await Promise.all([
-      import(base + 'firebase-app.js'),
-      import(base + 'firebase-database.js'),
-      import(base + 'firebase-auth.js')
+    const base =
+      'https://www.gstatic.com/firebasejs/10.12.2/';
+
+    const [A,D,U] = await Promise.all([
+
+      import(base+'firebase-app.js'),
+
+      import(base+'firebase-database.js'),
+
+      import(base+'firebase-auth.js')
+
     ]);
 
     const app = A.initializeApp(firebaseConfig);
+
     const db = D.getDatabase(app);
+
     const auth = U.getAuth(app);
 
-    const R = p => D.ref(db, 'SmartVent/' + p);
+    const R = p => D.ref(db,'SmartVent/'+p);
 
-    const OWNER_EMAIL = 'speaker3391@gmail.com';
+    // Firebase connection
 
-    let unsubscribers = [];
-    let activeUid = null;
+    D.onValue(
+      D.ref(db,'.info/connected'),
+      s => {
 
-    function stopDataListeners() {
-      unsubscribers.forEach(unsubscribe => unsubscribe());
-      unsubscribers = [];
-      activeUid = null;
-    }
+        dbConnected = s.val() === true;
 
-    function clearDashboardData() {
-      S.sensors = {};
-      S.fan = {};
-      S.diag = {};
-      S.cal = {};
-      S.control = {};
-      S.hist = [];
-      S.events = [];
-      lastRx = 0;
-      render();
-    }
+        console.log('Firebase connected:',dbConnected);
 
-    function attachDataListeners(user) {
-      if (activeUid === user.uid) return;
+      },
+      errH
+    );
 
-      stopDataListeners();
-      activeUid = user.uid;
+    // Live sensors
 
-      const addListener = (reference, callback) => {
-        const unsubscribe = D.onValue(
-          reference,
-          callback,
-          errH
+    D.onValue(
+      R('sensors'),
+      s => {
+
+        S.sensors = s.val() || {};
+
+        if(s.exists()) lastRx = Date.now();
+
+        console.log('Sensors received:',S.sensors);
+
+        render();
+
+      },
+      errH
+    );
+
+    // Fan
+
+    D.onValue(
+      R('fan'),
+      s => {
+
+        S.fan = s.val() || {};
+
+        render();
+
+      },
+      errH
+    );
+
+    // Diagnostics
+
+    D.onValue(
+      R('diag'),
+      s => {
+
+        S.diag = s.val() || {};
+
+        render();
+
+      },
+      errH
+    );
+
+    // Blockage
+
+    D.onValue(
+      R('blockage'),
+      s => {
+
+        S.blockage = s.val() || {};
+
+        console.log('Blockage received:',S.blockage);
+
+        render();
+
+      },
+      errH
+    );
+
+    // Calibration
+
+    D.onValue(
+      R('cal'),
+      s => {
+
+        S.cal = s.val() || {};
+
+        render();
+
+      },
+      errH
+    );
+
+    // Control
+
+    D.onValue(
+      R('control'),
+      s => {
+
+        S.control = s.val() || {};
+
+        render();
+
+      },
+      errH
+    );
+
+    // ==================================================
+    // HISTORY LISTENER
+    // ==================================================
+
+    D.onValue(
+
+      D.query(
+        R('history'),
+        D.orderByKey(),
+        D.limitToLast(300)
+      ),
+
+      s => {
+
+        S.hist = [];
+
+        s.forEach(c => {
+
+          const value = c.val();
+
+          if(value && typeof value === 'object') {
+
+            S.hist.push(value);
+
+          }
+
+        });
+
+        console.log(
+          'History records received:',
+          S.hist.length
         );
 
-        unsubscribers.push(unsubscribe);
-      };
+        renderChart();
 
-      addListener(R('sensors'), s => {
-        S.sensors = s.val() || {};
-        if (s.exists()) lastRx = Date.now();
-        render();
-      });
+      },
 
-      addListener(R('fan'), s => {
-        S.fan = s.val() || {};
-        render();
-      });
+      errH
 
-      addListener(R('diag'), s => {
-        S.diag = s.val() || {};
-        render();
-      });
+    );
 
-      addListener(R('cal'), s => {
-        S.cal = s.val() || {};
-        render();
-      });
+    // ==================================================
+    // EVENTS LISTENER
+    // ==================================================
 
-      addListener(R('control'), s => {
-        S.control = s.val() || {};
-        render();
-      });
+    D.onValue(
 
-      addListener(
-        D.query(R('history'), D.orderByKey(), D.limitToLast(300)),
-        s => {
-          const a = [];
-          s.forEach(c => a.push(c.val()));
-          S.hist = a;
-          render();
-        }
-      );
+      D.query(
+        R('events'),
+        D.orderByKey(),
+        D.limitToLast(50)
+      ),
 
-      addListener(
-        D.query(R('events'), D.orderByKey(), D.limitToLast(50)),
-        s => {
-          const a = [];
-          s.forEach(c => a.push(c.val()));
-          S.events = a.reverse();
-          render();
-        }
-      );
+      s => {
 
-      cfgBanner.className = 'banner';
-    }
+        S.events = [];
 
-    // Firebase connection status
-    D.onValue(D.ref(db, '.info/connected'), s => {
-      dbConnected = s.val() === true;
+        s.forEach(c => {
+
+          const value = c.val();
+
+          if(value && typeof value === 'object') {
+
+            S.events.push(value);
+
+          }
+
+        });
+
+        console.log(
+          'Events received:',
+          S.events.length
+        );
+
+        renderEvents();
+
+      },
+
+      errH
+
+    );
+
+    // ==================================================
+    // AUTHENTICATION
+    // ==================================================
+
+    U.onAuthStateChanged(auth,u => {
+
+      $('ctl').style.display =
+        u ? 'block':'none';
+
+      $('signBtn').textContent =
+        u ? 'Sign out':'Sign in';
+
     });
 
-    // Restore authentication before starting database listeners
-    await U.setPersistence(auth, U.browserLocalPersistence);
+    $('signBtn').onclick = () => {
 
-    U.onAuthStateChanged(auth, user => {
-      const isOwner = !!user &&
-        user.email?.toLowerCase() === OWNER_EMAIL.toLowerCase();
+      if(auth.currentUser) {
 
-      $('ctl').style.display = isOwner ? 'block' : 'none';
-      $('signBtn').textContent = user ? 'Sign out' : 'Sign in';
+        U.signOut(auth);
 
-      if (user) {
-        attachDataListeners(user);
       } else {
-        stopDataListeners();
-        clearDashboardData();
-      }
-    });
 
-    // Sign-in / sign-out
-    $('signBtn').onclick = async () => {
-      if (auth.currentUser) {
-        try {
-          await U.signOut(auth);
-        } catch (e) {
-          errH(e);
-        }
-      } else {
         $('dlg').showModal();
+
       }
+
     };
 
-    $('cancelSign').onclick = () => $('dlg').close();
+    $('cancelSign').onclick = () => {
 
-    $('goSign').onclick = async () => {
-      const email = $('em').value.trim();
-      const password = $('pw').value;
+      $('dlg').close();
 
-      if (!email || !password) {
-        $('authErr').textContent = 'Enter your email and password.';
-        return;
-      }
+    };
 
-      $('goSign').disabled = true;
-      $('authErr').textContent = 'Signing in...';
+    $('goSign').onclick = () => {
 
-      try {
-        await U.signInWithEmailAndPassword(auth, email, password);
+      U.signInWithEmailAndPassword(
+        auth,
+        $('em').value,
+        $('pw').value
+      )
+
+      .then(() => {
+
         $('pw').value = '';
+
         $('authErr').textContent = '';
+
         $('dlg').close();
-      } catch (e) {
+
+      })
+
+      .catch(e => {
+
         $('authErr').textContent = e.message;
-      } finally {
-        $('goSign').disabled = false;
-      }
+
+      });
+
     };
 
-    // Firebase control writes
-    const setCtl = (k, v) => {
-      if (auth.currentUser?.email?.toLowerCase() !== OWNER_EMAIL.toLowerCase()) {
-        return;
-      }
+    // ==================================================
+    // CONTROL WRITES
+    // ==================================================
 
-      D.set(R('control/' + k), v).catch(errH);
+    const setCtl = (k,v) => {
+
+      D.set(R('control/'+k),v).catch(errH);
+
     };
 
-    $('mAuto').onclick = () => setCtl('mode', 'AUTO');
-    $('mMan').onclick = () => setCtl('mode', 'MANUAL');
+    $('mAuto').onclick = () => {
+
+      setCtl('mode','AUTO');
+
+    };
+
+    $('mMan').onclick = () => {
+
+      setCtl('mode','MANUAL');
+
+    };
 
     let tmr;
 
     $('slider').oninput = e => {
-      $('sv').textContent = e.target.value + ' %';
+
+      $('sv').textContent = e.target.value+' %';
 
       clearTimeout(tmr);
 
       tmr = setTimeout(() => {
-        setCtl('targetPwm', +e.target.value);
-      }, 300);
+
+        setCtl('targetPwm',+e.target.value);
+
+      },300);
+
     };
 
     document.querySelectorAll('[data-p]').forEach(b => {
+
       b.onclick = () => {
+
         $('slider').value = b.dataset.p;
-        $('sv').textContent = b.dataset.p + ' %';
-        setCtl('targetPwm', +b.dataset.p);
+
+        $('sv').textContent = b.dataset.p+' %';
+
+        setCtl('targetPwm',+b.dataset.p);
+
       };
+
     });
 
-  } catch (e) {
-    console.error(e);
+    console.log('SmartVent Firebase initialized successfully.');
+
+  } catch(e) {
+
     errH(e);
+
   }
+
 }
+
+// ==================================================
+// START
+// ==================================================
+
 render();
-if (DEMO) startDemo(); else startFirebase();
+
+if(DEMO) {
+
+  startDemo();
+
+} else {
+
+  startFirebase();
+
+}
 </script>
-</body></html>
+
+</body>
+</html>
+```
