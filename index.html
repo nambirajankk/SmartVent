@@ -199,14 +199,34 @@ function render() {
   $('i').textContent = fmt(s.current_mA, 0, ' mA');
   $('wh').textContent = fmt(s.energy_Wh, 3, ' Wh');
 
-  // diagnostics: the ESP decides the level, the dashboard only displays it
+  // Diagnostics
   const lvl = d.level, chip = $('diagChip');
-  const map = { OK: ['Airflow OK', 'ok'], MILD: ['Slightly restricted', 'warn'], SEVERE: ['Severe blockage', 'bad'] };
-  const [txt, cls] = map[lvl] || ['Unknown', ''];
-  chip.textContent = txt; chip.className = cls;
-  $('bSevere').className = 'banner' + (lvl === 'SEVERE' ? ' bad' : '');
-  $('bFault').className = 'banner' + (d.fault === true ? ' warn' : '');
-  $('dev').textContent = 'Current deviation: ' + fmt(d.devPct, 1, ' %');
+  
+  const map = {
+    OK: ['Airflow OK', 'ok'],
+    MILD: ['Slightly restricted', 'warn'],
+    SEVERE: ['Severe blockage', 'bad']
+  };
+  
+  let txt, cls;
+  
+  if (d.fault === true) {
+    txt = 'Sensor Fault';
+    cls = 'bad';
+  } else if (lvl === 'OK' || lvl === 'MILD' || lvl === 'SEVERE') {
+    [txt, cls] = map[lvl];
+  } else {
+    txt = 'Awaiting Calibration';
+    cls = '';
+  }
+
+chip.textContent = txt;
+chip.className = cls;
+
+$('bSevere').className = 'banner' + (lvl === 'SEVERE' ? ' bad' : '');
+$('bFault').className = 'banner' + (d.fault === true ? ' warn' : '');
+
+$('dev').textContent = 'Current deviation: ' + fmt(d.devPct, 1, ' %');
 
   // signature chart
   const p = num(f.pwm), cur = num(s.current_mA);
