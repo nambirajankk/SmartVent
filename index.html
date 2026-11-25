@@ -348,6 +348,8 @@
         Severe fan-current deviation detected. Inspect the fan and grille.
       </div>
 
+      <div id="bBlock" class="banner"></div>
+      
       <div id="bFault" class="banner">
         Sensor fault: SmartVent is in timed-ventilation fallback.
       </div>
@@ -836,17 +838,30 @@
 
       // Blockage status
 
-      const blockageType = blockage.type || 'NORMAL';
+            const blockageType = blockage.type || 'NORMAL';
+      const blocked = blockage.detected === true;
 
-      const blockageDeviation = num(blockage.currentDevPct);
+      const NAMES = {
+        NORMAL: 'Normal',
+        MECHANICAL_BLOCKAGE: 'Mechanical blockage',
+        FAN_FAILURE: 'Fan failure',
+        POSSIBLE_OBSTRUCTION: 'Possible obstruction'
+      };
+
+      const bName = NAMES[blockageType] || blockageType;
+
+      $('bBlock').textContent = 'Fan fault detected: ' + bName;
+      $('bBlock').className = 'banner' + (blocked ? ' bad' : '');
 
       $('blockageNote').textContent =
-        'Fan condition: ' +
-        (blockageType === 'POSSIBLE_OBSTRUCTION'
-          ? 'Possible obstruction'
-          : blockageType) +
-        ' · Current deviation: ' +
-        fmt(blockageDeviation, 1, ' %');
+        'Fan condition: ' + bName +
+        ' · RPM deviation: ' + fmt(blockage.rpmDevPct, 1, ' %') +
+        ' · Current deviation: ' + fmt(blockage.currentDevPct, 1, ' %');
+
+      if (blocked) {
+        chip.textContent = bName;
+        chip.className = 'bad';
+      }
 
       // Signature chart
 
