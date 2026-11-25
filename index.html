@@ -277,6 +277,11 @@
       width: 100%
     }
 
+    #blockageNote {
+      white-space: pre-line;
+      line-height: 1.9;
+    }
+    
     dialog {
       border: 0;
       border-radius: 14px;
@@ -854,9 +859,8 @@
       $('bBlock').className = 'banner' + (blocked ? ' bad' : '');
 
       $('blockageNote').textContent =
-        'Fan condition: ' + bName +
-        ' · RPM deviation: ' + fmt(blockage.rpmDevPct, 1, ' %') +
-        ' · Current deviation: ' + fmt(blockage.currentDevPct, 1, ' %');
+        'RPM deviation: ' + fmt(blockage.rpmDevPct, 1, ' %') +
+        '\nFan condition: ' + bName;
 
       if (blocked) {
         chip.textContent = bName;
